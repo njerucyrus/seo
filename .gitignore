@@ -1,0 +1,21 @@
+# Django project files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.sqlite3
+db.sqlite3
+
+*.secret_key
+.env
+.env.*
+.vscode/
+*.sublime-*
+*.idea/
+*.iml
+
+# Scrapy project files
+*.log
+*.bak
+venv/
+ai_models/
