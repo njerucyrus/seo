@@ -29,7 +29,7 @@ from sumy.parsers.plaintext import PlaintextParser
 from sumy.summarizers.lsa import LsaSummarizer
 from sumy.utils import get_stop_words
 
-OPEN_AI_KEY = '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'
+OPEN_AI_KEY = ''
 
 
 def get_domain(url):
@@ -45,42 +45,51 @@ def get_filename(url, suffix=''):
 
 def scrape_urls(url):
     print(f'started scrapping urls from: {url}')
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context()
-        page = context.new_page()
+    filename = get_filename(url, suffix='urls')
+    try:
+        if not os.path.exists(filename):
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                context = browser.new_context()
+                page = context.new_page()
 
-        # Navigate to the website
-        page.goto(url)
+                # Navigate to the website
+                page.goto(url)
 
-        # Extract all unique non-empty, non-mailto, non-tel, and same-domain URLs on the page
-        urls = page.evaluate(f'''(mainUrl) => {{
-            const anchors = document.querySelectorAll('a');
-            const uniqueUrls = new Set();
-            const mainDomain = new URL(mainUrl).hostname;
+                # Extract all unique non-empty, non-mailto, non-tel, and same-domain URLs on the page
+                urls = page.evaluate(f'''(mainUrl) => {{
+                    const anchors = document.querySelectorAll('a');
+                    const uniqueUrls = new Set();
+                    const mainDomain = new URL(mainUrl).hostname;
+        
+                    anchors.forEach(anchor => {{
+                        const href = anchor.href.trim();
+                        if (
+                            href !== ''
+                            && !href.startsWith('mailto:')
+                            && !href.startsWith('tel:')
+                            && new URL(href).hostname === mainDomain
+                        ) {{
+                            uniqueUrls.add(href);
+                        }}
+                    }});
+        
+                    return Array.from(uniqueUrls);
+                }}''', url)
 
-            anchors.forEach(anchor => {{
-                const href = anchor.href.trim();
-                if (
-                    href !== ''
-                    && !href.startsWith('mailto:')
-                    && !href.startsWith('tel:')
-                    && new URL(href).hostname === mainDomain
-                ) {{
-                    uniqueUrls.add(href);
-                }}
-            }});
+                # Close the browser
+                browser.close()
+                filename = get_filename(url=url, suffix='urls')
+                with open(filename, 'w+') as f:
+                    f.write(json.dumps(urls, ensure_ascii=False))
+                print(f'Scraped {len(urls)} URLs')
+                return urls
+        else:
+            with open(filename, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        print(e)
 
-            return Array.from(uniqueUrls);
-        }}''', url)
-
-        filename = get_filename(url=url, suffix='urls')
-        with open(filename, 'w+') as f:
-            f.write(json.dumps(urls, ensure_ascii=False))
-        # Close the browser
-        browser.close()
-        print(f'Scraped {len(urls)} URLs')
-        return urls
 
 
 def get_redirects(url):
@@ -142,7 +151,7 @@ def save_pages(website_url, urls):
 def summarize_page_content(website_url):
     # use langchain and open ai to summarize the content on a page.
     filename = get_filename(website_url, suffix='page_data')
-    if not os.path.exists(filename) and not os.path.exists(get_filename(website_url, suffix='page_summary')):
+    if os.path.exists(filename):
         with open(filename, 'r') as f:
             data = json.load(f)
             print(data)
@@ -372,10 +381,13 @@ def get_website_n_grams(website_url):
 
 def site_analysis(url):
     print(f'Analysing {url}')
-    result = analyze(url)
-    filename = get_filename(url=url, suffix='site_analysis')
-    with open(filename, 'w+') as f:
-        f.write(json.dumps(result, ensure_ascii=False))
+    try:
+        result = analyze(url)
+        filename = get_filename(url=url, suffix='site_analysis')
+        with open(filename, 'w+') as f:
+            f.write(json.dumps(result, ensure_ascii=False))
+    except Exception as e:
+        print(e)
 
 
 def get_seo_stats(url):
@@ -390,7 +402,7 @@ def get_seo_stats(url):
         with open(file_path, 'r') as f:
             data = json.load(f)
             page_data = data.get('pages')[0]
-            keyword_records = page_data.get('keywords')
+            keyword_records = page_data.get('keywords', [])
             for record in keyword_records:
                 item = {
                     'keyword': record[1],
@@ -398,7 +410,7 @@ def get_seo_stats(url):
                 }
                 keywords.append(item)
 
-            bigram_records = page_data.get('bigrams')
+            bigram_records = page_data.get('bigrams', [])
             for k, v in bigram_records.items():
                 item = {
                     'bigram': k,
@@ -406,7 +418,7 @@ def get_seo_stats(url):
                 }
                 bigrams.append(item)
 
-            trigram_records = page_data.get('trigrams')
+            trigram_records = page_data.get('trigrams', [])
             for k, v in trigram_records.items():
                 item = {
                     'trigram': k,
@@ -414,8 +426,8 @@ def get_seo_stats(url):
                 }
                 trigrams.append(item)
 
-            warning_records = list(set(page_data.get('warnings')))
-            print("Error Warns", len(warning_records), len(page_data.get('warnings')))
+            warning_records = list(set(page_data.get('warnings', [])))
+            print("Error Warns", len(warning_records), len(page_data.get('warnings', [])))
             for record in warning_records:
                 record_list = record.split(':')
                 item = {}
@@ -443,9 +455,10 @@ def get_seo_stats(url):
                         'value': image_url
                     }
                 else:
+
                     item = {
-                        'message': warning_message,
-                        'value': record_list[1].strip()
+                        'message': record,
+                        'value': record
                     }
                 warnings.append(item)
 

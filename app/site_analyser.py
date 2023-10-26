@@ -31,7 +31,7 @@ def get_seo_stats(url):
     bigrams = []
     trigrams = []
     warnings = []
-    if os.path.exists(file_path):
+    if  os.path.exists(file_path):
         with open(file_path, 'r') as f:
             data = json.load(f)
             page_data = data.get('pages')[0]
@@ -121,6 +121,6 @@ def get_seo_stats(url):
 
 
 if __name__ == '__main__':
-    website_url = 'https://macaws.ai'
-    stats = get_seo_stats(url=website_url)
+    website_url = 'https://hudutech.com'
+    stats = site_analysis(url=website_url)
     pprint(stats)
