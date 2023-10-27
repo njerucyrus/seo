@@ -29,7 +29,10 @@ from sumy.parsers.plaintext import PlaintextParser
 from sumy.summarizers.lsa import LsaSummarizer
 from sumy.utils import get_stop_words
 
-OPEN_AI_KEY = ''
+from dotenv import load_dotenv
+
+load_dotenv()
+OPEN_AI_KEY = os.getenv('API_KEY')
 
 
 def get_domain(url):
@@ -91,7 +94,6 @@ def scrape_urls(url):
         print(e)
 
 
-
 def get_redirects(url):
     redirect_urls = []
     try:
@@ -141,8 +143,9 @@ def save_pages(website_url, urls):
                 }
                 print(f'processed {item}')
                 pages_data.append(item)
+
             with open(filename, 'w+') as f:
-                f.write(json.dumps(pages_data))
+                f.write(json.dumps(pages_data, ensure_ascii=False))
     except Exception as e:
         print(e)
 
@@ -177,71 +180,6 @@ def summarize_page_callback(page_url: str, page_content: str):
 
         result = chain.run(docs)
 
-        #     llm = ChatOpenAI(
-        #         openai_api_key=OPEN_AI_KEY,
-        #         temperature=0.0,
-        #
-        #     )
-        #     print(f'summarising content from: {page_url}')
-        #
-        #     # Map
-        #     map_template = """The following is a set of documents
-        #     {docs}
-        #     Based on this list of docs, please identify the main themes
-        #     Helpful Answer:"""
-        #     map_prompt = PromptTemplate.from_template(map_template)
-        #     map_chain = LLMChain(llm=llm, prompt=map_prompt)
-        #
-        #     reduce_template = """The following is set of summaries:
-        #     {docs}
-        #     Take these and distill it into a final, consolidated summary in form of paragraphs.
-        #     Helpful Answer:"""
-        #
-        #     reduce_prompt = PromptTemplate.from_template(reduce_template)
-        #     # reduce_prompt = hub.pull('rlm/map-prompt')
-        #     reduce_chain = LLMChain(llm=llm, prompt=reduce_prompt)
-        #
-        #     # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
-        #     combine_documents_chain = StuffDocumentsChain(
-        #         llm_chain=reduce_chain, document_variable_name="docs"
-        #     )
-        #
-        #     # Combines and iteravely reduces the mapped documents
-        #     reduce_documents_chain = ReduceDocumentsChain(
-        #         # This is final chain that is called.
-        #         combine_documents_chain=combine_documents_chain,
-        #         # If documents exceed context for `StuffDocumentsChain`
-        #         collapse_documents_chain=combine_documents_chain,
-        #         # The maximum number of tokens to group documents into.
-        #         token_max=2000,
-        #     )
-        #
-        #     # Combining documents by mapping a chain over them, then combining results
-        #     map_reduce_chain = MapReduceDocumentsChain(
-        #         # Map chain
-        #         llm_chain=map_chain,
-        #         # Reduce chain
-        #         reduce_documents_chain=reduce_documents_chain,
-        #         # The variable name in the llm_chain to put the documents in
-        #         document_variable_name="docs",
-        #         # Return the results of the map steps in the output
-        #         return_intermediate_steps=False,
-        #     )
-        #
-        #     # create docs from text
-        #     docs = [Document(page_content=page_content, metadata={
-        #         'source': page_url
-        #     })]
-        #
-        #     text_splitter = RecursiveCharacterTextSplitter(
-        #         chunk_size=1000,
-        #         chunk_overlap=0,
-        #         length_function=len
-        #     )
-        #
-        #     document_chunks = text_splitter.split_documents(docs)
-        #
-        #     result = map_reduce_chain.run(document_chunks)
         if result:
             item = {
                 'page_url': page_url,
@@ -400,70 +338,75 @@ def get_seo_stats(url):
     if os.path.exists(file_path):
         with open(file_path, 'r') as f:
             data = json.load(f)
-            page_data = data.get('pages')[0]
-            keyword_records = page_data.get('keywords', [])
-            for record in keyword_records:
-                item = {
-                    'keyword': record[1],
-                    'count': record[0]
-                }
-                keywords.append(item)
+            for page_data in data.get('pages', []):
 
-            bigram_records = page_data.get('bigrams', [])
-            for k, v in bigram_records.items():
-                item = {
-                    'bigram': k,
-                    'count': v
-                }
-                bigrams.append(item)
-
-            trigram_records = page_data.get('trigrams', [])
-            for k, v in trigram_records.items():
-                item = {
-                    'trigram': k,
-                    'count': v
-                }
-                trigrams.append(item)
-
-            warning_records = list(set(page_data.get('warnings', [])))
-            print("Error Warns", len(warning_records), len(page_data.get('warnings', [])))
-            for record in warning_records:
-                record_list = record.split(':')
-                item = {}
-                warning_message = record_list[0]
-                if warning_message.startswith('Anchor missing title tag'):
-                    pattern = r'Anchor missing title tag: (.+)'
-
-                    match = re.search(pattern, record)
-                    url = match.group(1) if match else None
-
+                keyword_records = page_data.get('keywords', [])
+                for record in keyword_records:
                     item = {
-                        'message': warning_message,
-                        'value': url,
-
+                        'keyword': record[1],
+                        'count': record[0]
                     }
-                elif warning_records == 'Image missing alt tag':
-                    # todo implement image to text
-                    pattern = r'src="([^"]+)"'
-                    match = re.search(pattern, record)
+                    keywords.append(item)
 
-                    # If a match is found, extract the image URL
-                    image_url = match.group(1) if match else None
+                bigram_records = page_data.get('bigrams', [])
+                for k, v in bigram_records.items():
                     item = {
-                        'message': warning_message,
-                        'value': image_url
+                        'bigram': k,
+                        'count': v
                     }
-                else:
+                    bigrams.append(item)
 
+                trigram_records = page_data.get('trigrams', [])
+                for k, v in trigram_records.items():
                     item = {
-                        'message': record,
-                        'value': record
+                        'trigram': k,
+                        'count': v
                     }
-                warnings.append(item)
+                    trigrams.append(item)
+
+                warning_records = list(set(page_data.get('warnings', [])))
+                for record in warning_records:
+                    record_list = record.split(':')
+                    item = {}
+                    warning_message = record_list[0]
+                    if warning_message.startswith('Anchor missing title tag'):
+                        pattern = r'Anchor missing title tag: (.+)'
+
+                        match = re.search(pattern, record)
+                        url = match.group(1) if match else None
+
+                        item = {
+                            'message': warning_message,
+                            'value': url,
+
+                        }
+                    elif warning_records == 'Image missing alt tag':
+                        # todo implement image to text
+                        pattern = r'src="([^"]+)"'
+                        match = re.search(pattern, record)
+
+                        # If a match is found, extract the image URL
+                        image_url = match.group(1) if match else None
+                        item = {
+                            'message': warning_message,
+                            'value': image_url
+                        }
+                    else:
+
+                        item = {
+                            'message': record,
+                            'value': record
+                        }
+                    warnings.append(item)
 
     else:
         site_analysis(url)
-        return
+        return {
+            'warnings': [],
+            'bigrams': [],
+            'trigrams': [],
+            'keywords':[]
+        }
 
     bigram_measures = nltk.collocations.BigramAssocMeasures()
     trigram_measures = nltk.collocations.TrigramAssocMeasures()
@@ -500,17 +443,19 @@ def app():
                 save_page_meta_descriptions(website)
                 meta_desc = get_meta_descriptions(website)
                 stats = get_seo_stats(website)
+
                 with st.container():
                     st.warning('SEO Warnings')
-                    st.info(f'We found {len(stats.get("warnings"))} SEO warnings')
-                    messages = [item['message'] for item in stats.get('warnings')]
-                    targets = [item['value'] for item in stats.get('warnings')]
-                    table_data = {
-                        'Warning Message': messages,
-                        'Targets': targets,
+                    if stats is not None:
+                        st.info(f'We found {len(stats.get("warnings"))} SEO warnings')
+                        messages = [item['message'] for item in stats.get('warnings')]
+                        targets = [item['value'] for item in stats.get('warnings')]
+                        table_data = {
+                            'Warning Message': messages,
+                            'Targets': targets,
 
-                    }
-                    st.dataframe(data=table_data)
+                        }
+                        st.dataframe(data=table_data)
 
                 with st.container():
                     st.success('Generated Meta Description Based on Page Content')
@@ -543,8 +488,6 @@ def app():
 
                     # Display the plot in Streamlit
                     st.altair_chart(chart, use_container_width=True)
-
-
 
 
 if __name__ == '__main__':
