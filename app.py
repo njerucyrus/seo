@@ -131,21 +131,20 @@ def get_page_content(url):
 
 def save_pages(website_url, urls):
     filename = get_filename(website_url, suffix='page_data')
-
-    base_dir = os.path.dirname(os.path.realpath(__file__))
-
-    file_path = os.path.join(base_dir, filename)
-    if not os.path.exists(file_path):
-        pages_data = []
-        for url in urls:
-            item = {
-                'url': url,
-                'content': get_page_content(url)
-            }
-            print(f'processed {item}')
-            pages_data.append(item)
-        with open(filename, 'w+') as f:
-            f.write(json.dumps(pages_data, ensure_ascii=False))
+    try:
+        if not os.path.exists(filename):
+            pages_data = []
+            for url in urls:
+                item = {
+                    'url': url,
+                    'content': get_page_content(url)
+                }
+                print(f'processed {item}')
+                pages_data.append(item)
+            with open(filename, 'w+') as f:
+                f.write(json.dumps(pages_data))
+    except Exception as e:
+        print(e)
 
 
 def summarize_page_content(website_url):
