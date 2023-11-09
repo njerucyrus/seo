@@ -687,14 +687,19 @@ def app():
                     # Display the plot in Streamlit
                     st.altair_chart(chart, use_container_width=True)
                 with st.container():
+                    st.header('Website Images')
                     for item in image_data:
-                        st.subheader(f'Images From: {item["page_url"]}')
-                        container = st.container()
-                        for image in item['image_data']:
+                        if len(item["image_data"]) > 0:
+                            st.subheader(f'Images for : {item["page_url"]}')
+                            container = st.container()
 
-                            container.image(image['image_url'], width=280)
-                            container.info(f'Old Image Description: {image["original_alt"]}')
-                            container.success(f'AI generated Image Description: {image["generated_text"]}')
+                            for image in item['image_data']:
+
+                                container.image(image['image_url'], width=280)
+                                container.info(f'Old Image Description: {image["original_alt"]}')
+                                container.success(f'AI generated Image Description: {image["generated_text"]}')
+                        else:
+                            st.info(f'No images found at:{item["page_url"]}')
 
 
 def save_urls(sitemap, url_filename):
