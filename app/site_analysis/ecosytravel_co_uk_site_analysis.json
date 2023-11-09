@@ -1,0 +1,25 @@
+{
+  "pages": [
+    {
+      "url": "https://ecosytravel.co.uk/",
+      "title": "ecosy travel",
+      "description": "ecosy travel is making going green the easy option. you can now plan your holiday knowing that you and your planet will be well looked after. all holiday properties listed in our trip planner are certified green and can be accessed by low-carbon transport. you can plan out your route, whether you're travelling by coach, train, ev, ferry, bike or bus, and manage your bookings all in one place.",
+      "word_count": 2,
+      "keywords": [],
+      "bigrams": {
+        "ecosy travel": 1
+      },
+      "trigrams": {},
+      "warnings": [
+        "Description is too long (more than 255 characters): ecosy travel is making going green the easy option. you can now plan your holiday knowing that you and your planet will be well looked after. all holiday properties listed in our trip planner are certified green and can be accessed by low-carbon transport. you can plan out your route, whether you're travelling by coach, train, ev, ferry, bike or bus, and manage your bookings all in one place.",
+        "Image missing alt tag: <img src=\"data:image/gif;base64,r0lgodlhaqabaiaaaaaaap///yh5baeaaaaalaaaaaabaaeaaaibraa7\" style=\"display: none;\"/>",
+        "Each page should have at least one h1 tag"
+      ],
+      "content_hash": "92467175202c742796b6d2d14116dbe012266c41"
+    }
+  ],
+  "keywords": [],
+  "errors": [],
+  "total_time": 1.4007470607757568,
+  "duplicate_pages": []
+}
